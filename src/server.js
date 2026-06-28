@@ -2218,6 +2218,25 @@ proxy.on("proxyReqWs", (proxyReq, req, socket, options, head) => {
   proxyReq.setHeader("Authorization", `Bearer ${OPENCLAW_GATEWAY_TOKEN}`);
 });
 
+// Custom webhook endpoint for Make/Zapier integration
+app.post("/api/chat", requireSetupAuth, async (req, res) => {
+  const { message, sessionKey } = req.body || {};
+  if (!message) return res.status(400).json({ error: "message required" });
+  const sk = sessionKey || "whatsapp:default";
+  const result = await runCmd(OPENCLAW_NODE, clawArgs([
+    "agent",
+    "--session-key", sk,
+    "--message", message,
+    "--json"
+  ]));
+  try {
+    const parsed = JSON.parse(result.output);
+    return res.json({ ok: true, reply: parsed?.reply || parsed });
+  } catch {
+    return res.json({ ok: true, reply: result.output.trim() });
+  }
+});
+
 app.use(async (req, res) => {
   // If not configured, force users to /setup for any non-setup routes.
   if (!isConfigured() && !req.path.startsWith("/setup")) {
@@ -2239,25 +2258,6 @@ app.use(async (req, res) => {
 
   // Proxy to gateway (auth token injected via proxyReq event)
   return proxy.web(req, res, { target: GATEWAY_TARGET });
-});
-
-// Custom webhook endpoint for Make/Zapier integration
-app.post("/api/chat", requireSetupAuth, async (req, res) => {
-  const { message, sessionKey } = req.body || {};
-  if (!message) return res.status(400).json({ error: "message required" });
-  const sk = sessionKey || "whatsapp:default";
-  const result = await runCmd(OPENCLAW_NODE, clawArgs([
-    "agent",
-    "--session-key", sk,
-    "--message", message,
-    "--json"
-  ]));
-  try {
-    const parsed = JSON.parse(result.output);
-    return res.json({ ok: true, reply: parsed?.reply || parsed });
-  } catch {
-    return res.json({ ok: true, reply: result.output.trim() });
-  }
 });
 
 // Create HTTP server from Express app
