@@ -2241,6 +2241,25 @@ app.use(async (req, res) => {
   return proxy.web(req, res, { target: GATEWAY_TARGET });
 });
 
+// Custom webhook endpoint for Make/Zapier integration
+app.post("/api/chat", requireSetupAuth, async (req, res) => {
+  const { message, sessionKey } = req.body || {};
+  if (!message) return res.status(400).json({ error: "message required" });
+  const sk = sessionKey || "whatsapp:default";
+  const result = await runCmd(OPENCLAW_NODE, clawArgs([
+    "agent",
+    "--session-key", sk,
+    "--message", message,
+    "--json"
+  ]));
+  try {
+    const parsed = JSON.parse(result.output);
+    return res.json({ ok: true, reply: parsed?.reply || parsed });
+  } catch {
+    return res.json({ ok: true, reply: result.output.trim() });
+  }
+});
+
 // Create HTTP server from Express app
 const server = app.listen(PORT, () => {
   console.log(`[wrapper] listening on port ${PORT}`);
@@ -2268,24 +2287,6 @@ server.on("upgrade", async (req, socket, head) => {
 
   // Proxy WebSocket upgrade (auth token injected via proxyReqWs event)
   proxy.ws(req, socket, head, { target: GATEWAY_TARGET });
-});
-// Custom webhook endpoint for Make/Zapier integration
-app.post("/api/chat", requireSetupAuth, async (req, res) => {
-  const { message, sessionKey } = req.body || {};
-  if (!message) return res.status(400).json({ error: "message required" });
-  const sk = sessionKey || "whatsapp:default";
-  const result = await runCmd(OPENCLAW_NODE, clawArgs([
-    "agent",
-    "--session-key", sk,
-    "--message", message,
-    "--json"
-  ]));
-  try {
-    const parsed = JSON.parse(result.output);
-    return res.json({ ok: true, reply: parsed?.reply || parsed });
-  } catch {
-    return res.json({ ok: true, reply: result.output.trim() });
-  }
 });
 
 process.on("SIGTERM", () => {
