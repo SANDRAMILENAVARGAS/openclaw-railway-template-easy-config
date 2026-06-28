@@ -11,6 +11,7 @@ This repo packages **Openclaw** for Railway with a small **/setup** web wizard s
 - **7 Pre-installed Skills** from ClawHub:
   - **gog** - Google Workspace CLI (Gmail, Calendar, Drive, Contacts, Sheets, Docs)
   - **summarize** - Summarize URLs/files (web, PDFs, images, audio, YouTube)
+  - 
   - **weather** - Weather forecasts (no API key required)
   - **skill-creator** - Create custom skills
   - **daily-ai-news** - AI news aggregator
