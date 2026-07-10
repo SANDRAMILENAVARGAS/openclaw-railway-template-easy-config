@@ -2218,6 +2218,41 @@ proxy.on("proxyReqWs", (proxyReq, req, socket, options, head) => {
   proxyReq.setHeader("Authorization", `Bearer ${OPENCLAW_GATEWAY_TOKEN}`);
 });
 
+// Siigo API helper
+async function getSiigoToken() {
+  const res = await fetch("https://api.siigo.com/auth", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Partner-ID": process.env.SIIGO_PARTNER_ID || ""
+    },
+    body: JSON.stringify({
+      username: process.env.SIIGO_USERNAME,
+      access_key: process.env.SIIGO_ACCESS_KEY
+    })
+  });
+  const data = await res.json();
+  return data.access_token;
+}
+
+// Endpoint para consultar productos de Siigo
+app.get("/api/products", requireSetupAuth, async (req, res) => {
+  try {
+    const token = await getSiigoToken();
+    const response = await fetch("https://api.siigo.com/v1/products?page=1&page_size=100", {
+      headers: {
+        "Authorization": `Bearer ${token}`,
+        "Partner-ID": process.env.SIIGO_PARTNER_ID || "",
+        "Content-Type": "application/json"
+      }
+    });
+    const data = await response.json();
+    return res.json({ ok: true, products: data });
+  } catch (err) {
+    return res.status(500).json({ ok: false, error: String(err) });
+  }
+});
+
 // Custom webhook endpoint for Make/Zapier integration
 app.post("/api/chat", requireSetupAuth, async (req, res) => {
   const { message, sessionKey } = req.body || {};
