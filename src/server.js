@@ -2258,10 +2258,32 @@ app.post("/api/chat", requireSetupAuth, async (req, res) => {
   const { message, sessionKey } = req.body || {};
   if (!message) return res.status(400).json({ error: "message required" });
   const sk = sessionKey || "whatsapp:default";
+  
+  // Obtener catálogo de Siigo
+  let catalogoText = "";
+  try {
+    const token = await getSiigoToken();
+    const siigo = await fetch("https://api.siigo.com/v1/products?page=1&page_size=100", {
+      headers: {
+        "Authorization": `Bearer ${token}`,
+        "Partner-ID": process.env.SIIGO_PARTNER_ID || "",
+        "Content-Type": "application/json"
+      }
+    });
+    const siigoData = await siigo.json();
+    const productos = (siigoData.results || []).map(p => {
+      const precio = p.prices?.[0]?.price_list?.find(pl => pl.name === "PRECIO TENDERO")?.value || 0;
+      return `- ${p.name}: $${precio.toLocaleString("es-CO")} (stock: ${p.available_quantity})`;
+    }).join("\n");
+    catalogoText = `\n\nCATÁLOGO ACTUAL DE PRODUCTOS ALPINA:\n${productos}`;
+  } catch(e) {
+    catalogoText = "";
+  }
+
   const result = await runCmd(OPENCLAW_NODE, clawArgs([
     "agent",
     "--session-key", sk,
-    "--message", message,
+    "--message", message + catalogoText,
     "--json"
   ]));
   try {
