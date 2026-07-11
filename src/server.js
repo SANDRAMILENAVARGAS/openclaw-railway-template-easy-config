@@ -2259,25 +2259,32 @@ app.post("/api/chat", requireSetupAuth, async (req, res) => {
   if (!message) return res.status(400).json({ error: "message required" });
   const sk = sessionKey || "whatsapp:default";
   
-  // Obtener catálogo de Siigo
+  // Solo consultar Siigo si el mensaje es sobre productos o precios
+  const palabrasClave = ["producto", "precio", "tienen", "disponible", "catálogo", "catalogo", "cuánto", "cuanto", "valor", "stock", "hay", "venden", "ofrecen", "alpina", "pedido", "quiero", "necesito", "dame"];
+  const necesitaCatalogo = palabrasClave.some(p => message.toLowerCase().includes(p));
+  
   let catalogoText = "";
-  try {
-    const token = await getSiigoToken();
-    const siigo = await fetch("https://api.siigo.com/v1/products?page=1&page_size=100", {
-      headers: {
-        "Authorization": `Bearer ${token}`,
-        "Partner-ID": process.env.SIIGO_PARTNER_ID || "",
-        "Content-Type": "application/json"
-      }
-    });
-    const siigoData = await siigo.json();
-    const productos = (siigoData.results || []).map(p => {
-      const precio = p.prices?.[0]?.price_list?.find(pl => pl.name === "PRECIO TENDERO")?.value || 0;
-      return `- ${p.name}: $${precio.toLocaleString("es-CO")} (stock: ${p.available_quantity})`;
-    }).join("\n");
-    catalogoText = `\n\nCATÁLOGO ACTUAL DE PRODUCTOS ALPINA:\n${productos}`;
-  } catch(e) {
-    catalogoText = "";
+  if (necesitaCatalogo) {
+    try {
+      const token = await getSiigoToken();
+      const siigo = await fetch("https://api.siigo.com/v1/products?page=1&page_size=100", {
+        headers: {
+          "Authorization": `Bearer ${token}`,
+          "Partner-ID": process.env.SIIGO_PARTNER_ID || "",
+          "Content-Type": "application/json"
+        }
+      });
+      const siigoData = await siigo.json();
+      const productos = (siigoData.results || [])
+        .filter(p => p.active && p.available_quantity > 0)
+        .map(p => {
+          const precio = p.prices?.[0]?.price_list?.find(pl => pl.name === "PRECIO TENDERO")?.value || 0;
+          return `- ${p.name}: $${Math.round(precio).toLocaleString("es-CO")}`;
+        }).join("\n");
+      catalogoText = `\n\n[CATÁLOGO DISPONIBLE]:\n${productos}`;
+    } catch(e) {
+      catalogoText = "";
+    }
   }
 
   const result = await runCmd(OPENCLAW_NODE, clawArgs([
