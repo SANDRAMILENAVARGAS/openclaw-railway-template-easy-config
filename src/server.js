@@ -2293,11 +2293,16 @@ app.post("/api/chat", requireSetupAuth, async (req, res) => {
     "--message", message + catalogoText,
     "--json"
   ]));
-  try {
+ try {
     const parsed = JSON.parse(result.output);
-    return res.json({ ok: true, reply: parsed?.reply || parsed });
+    const textoFinal =
+      parsed?.meta?.finalAssistantVisibleText ||
+      parsed?.finalAssistantVisibleText ||
+      parsed?.payloads?.[0]?.text ||
+      "";
+    return res.json({ ok: true, reply: { finalAssistantVisibleText: textoFinal } });
   } catch {
-    return res.json({ ok: true, reply: result.output.trim() });
+    return res.json({ ok: true, reply: { finalAssistantVisibleText: result.output.trim() } });
   }
 });
 
