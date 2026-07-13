@@ -2257,25 +2257,6 @@ function truncarParaWhatsApp(texto, maxChars = 4000) {
   if (texto.length <= maxChars) return texto;
   return texto.slice(0, maxChars - 20) + "\n\n(Sigo aquí si necesitas más detalles 🙂)";
 }
-function extraerJSONDelOutput(texto) {
-  if (!texto) return null;
-  const lineas = texto.split("\n");
-  let inicio = -1, fin = -1;
-  for (let i = 0; i < lineas.length; i++) {
-    if (lineas[i].trim() === "{") { inicio = i; break; }
-  }
-  if (inicio === -1) return null;
-  for (let i = lineas.length - 1; i > inicio; i--) {
-    if (lineas[i].trim() === "}") { fin = i; break; }
-  }
-  if (fin === -1) return null;
-  const candidato = lineas.slice(inicio, fin + 1).join("\n");
-  try {
-    return JSON.parse(candidato);
-  } catch {
-    return null;
-  }
-}
 
 // Custom webhook endpoint for Make/Zapier integration
 app.post("/api/chat", requireSetupAuth, async (req, res) => {
