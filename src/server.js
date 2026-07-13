@@ -2276,6 +2276,7 @@ function extraerJSONDelOutput(texto) {
     return null;
   }
 }
+
 // Custom webhook endpoint for Make/Zapier integration
 app.post("/api/chat", requireSetupAuth, async (req, res) => {
   const { message, sessionKey } = req.body || {};
