@@ -2257,7 +2257,25 @@ function truncarParaWhatsApp(texto, maxChars = 4000) {
   if (texto.length <= maxChars) return texto;
   return texto.slice(0, maxChars - 20) + "\n\n(Sigo aquí si necesitas más detalles 🙂)";
 }
-
+function extraerJSONDelOutput(texto) {
+  if (!texto) return null;
+  const lineas = texto.split("\n");
+  let inicio = -1, fin = -1;
+  for (let i = 0; i < lineas.length; i++) {
+    if (lineas[i].trim() === "{") { inicio = i; break; }
+  }
+  if (inicio === -1) return null;
+  for (let i = lineas.length - 1; i > inicio; i--) {
+    if (lineas[i].trim() === "}") { fin = i; break; }
+  }
+  if (fin === -1) return null;
+  const candidato = lineas.slice(inicio, fin + 1).join("\n");
+  try {
+    return JSON.parse(candidato);
+  } catch {
+    return null;
+  }
+}
 // Custom webhook endpoint for Make/Zapier integration
 app.post("/api/chat", requireSetupAuth, async (req, res) => {
   const { message, sessionKey } = req.body || {};
@@ -2298,25 +2316,7 @@ app.post("/api/chat", requireSetupAuth, async (req, res) => {
     "--message", message + catalogoText,
     "--json"
   ]));
-try {
-  const parsed = JSON.parse(result.output);
-  const textoFinal =
-    parsed?.meta?.finalAssistantVisibleText ||
-    parsed?.finalAssistantVisibleText ||
-    parsed?.payloads?.[0]?.text ||
-    "";
-  return res.json({
-    ok: true,
-    reply: { finalAssistantVisibleText: truncarParaWhatsApp(textoFinal) },
-    _debugParsed: parsed          // <-- TEMPORAL, para diagnóstico
-  });
-} catch {
-  return res.json({
-    ok: true,
-    reply: { finalAssistantVisibleText: truncarParaWhatsApp(result.output.trim()) },
-    _debugRawOutput: result.output,   // <-- TEMPORAL
-    _debugStderr: result.stderr || null  // <-- TEMPORAL
-  });
+
 }
 });
 
