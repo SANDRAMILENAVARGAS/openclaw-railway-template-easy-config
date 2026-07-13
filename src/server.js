@@ -2293,17 +2293,26 @@ app.post("/api/chat", requireSetupAuth, async (req, res) => {
     "--message", message + catalogoText,
     "--json"
   ]));
- try {
-    const parsed = JSON.parse(result.output);
-    const textoFinal =
-      parsed?.meta?.finalAssistantVisibleText ||
-      parsed?.finalAssistantVisibleText ||
-      parsed?.payloads?.[0]?.text ||
-      "";
-    return res.json({ ok: true, reply: { finalAssistantVisibleText: textoFinal } });
-  } catch {
-    return res.json({ ok: true, reply: { finalAssistantVisibleText: result.output.trim() } });
-  }
+try {
+  const parsed = JSON.parse(result.output);
+  const textoFinal =
+    parsed?.meta?.finalAssistantVisibleText ||
+    parsed?.finalAssistantVisibleText ||
+    parsed?.payloads?.[0]?.text ||
+    "";
+  return res.json({
+    ok: true,
+    reply: { finalAssistantVisibleText: truncarParaWhatsApp(textoFinal) },
+    _debugParsed: parsed          // <-- TEMPORAL, para diagnóstico
+  });
+} catch {
+  return res.json({
+    ok: true,
+    reply: { finalAssistantVisibleText: truncarParaWhatsApp(result.output.trim()) },
+    _debugRawOutput: result.output,   // <-- TEMPORAL
+    _debugStderr: result.stderr || null  // <-- TEMPORAL
+  });
+}
 });
 
 app.use(async (req, res) => {
