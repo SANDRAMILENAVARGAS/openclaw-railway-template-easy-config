@@ -2252,6 +2252,11 @@ app.get("/api/products", requireSetupAuth, async (req, res) => {
     return res.status(500).json({ ok: false, error: String(err) });
   }
 });
+function truncarParaWhatsApp(texto, maxChars = 4000) {
+  if (!texto) return texto;
+  if (texto.length <= maxChars) return texto;
+  return texto.slice(0, maxChars - 20) + "\n\n(Sigo aquí si necesitas más detalles 🙂)";
+}
 
 // Custom webhook endpoint for Make/Zapier integration
 app.post("/api/chat", requireSetupAuth, async (req, res) => {
