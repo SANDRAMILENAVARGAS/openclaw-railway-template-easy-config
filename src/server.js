@@ -2317,9 +2317,6 @@ app.post("/api/chat", requireSetupAuth, async (req, res) => {
     "--json"
   ]));
 
-}
-});
-
 app.use(async (req, res) => {
   // If not configured, force users to /setup for any non-setup routes.
   if (!isConfigured() && !req.path.startsWith("/setup")) {
