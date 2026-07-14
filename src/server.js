@@ -2292,18 +2292,46 @@ app.post("/api/chat", requireSetupAuth, async (req, res) => {
     }
   }
 
-  const result = await runCmd(OPENCLAW_NODE, clawArgs([
+const result = await runCmd(OPENCLAW_NODE, clawArgs([
     "agent",
     "--session-key", sk,
     "--message", message + catalogoText,
     "--json"
   ]));
 
-app.use(async (req, res) => {
-  // If not configured, force users to /setup for any non-setup routes.
-  if (!isConfigured() && !req.path.startsWith("/setup")) {
-    return res.redirect("/setup");
+  // Extraer el bloque JSON real, ignorando líneas de log que a veces vienen mezcladas
+  let parsed = null;
+  const lineas = (result.output || "").split("\n");
+  let inicio = -1, fin = -1;
+  for (let i = 0; i < lineas.length; i++) {
+    if (lineas[i].trim() === "{") { inicio = i; break; }
   }
+  if (inicio !== -1) {
+    for (let i = lineas.length - 1; i > inicio; i--) {
+      if (lineas[i].trim() === "}") { fin = i; break; }
+    }
+  }
+  if (inicio !== -1 && fin !== -1) {
+    try {
+      parsed = JSON.parse(lineas.slice(inicio, fin + 1).join("\n"));
+    } catch {
+      parsed = null;
+    }
+  }
+
+  let textoFinal =
+    parsed?.finalAssistantVisibleText ||
+    parsed?.meta?.finalAssistantVisibleText ||
+    parsed?.payloads?.[0]?.text ||
+    (parsed ? "" : (result.output || "").trim());
+
+  const maxChars = 4000;
+  if (textoFinal && textoFinal.length > maxChars) {
+    textoFinal = textoFinal.slice(0, maxChars - 20) + "\n\n(Sigo aquí si necesitas más detalles 🙂)";
+  }
+
+  return res.json({ ok: true, reply: { finalAssistantVisibleText: textoFinal } });
+  });
 
   // Only start gateway if configured AND onboarding is not in progress
   // The onboardingInProgress flag prevents race conditions during config changes
