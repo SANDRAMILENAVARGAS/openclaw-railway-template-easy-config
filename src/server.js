@@ -2263,11 +2263,11 @@ app.post("/api/chat", requireSetupAuth, async (req, res) => {
   const { message, sessionKey } = req.body || {};
   if (!message) return res.status(400).json({ error: "message required" });
   const sk = sessionKey || "whatsapp:default";
-  
+
   // Solo consultar Siigo si el mensaje es sobre productos o precios
   const palabrasClave = ["producto", "precio", "tienen", "disponible", "catálogo", "catalogo", "cuánto", "cuanto", "valor", "stock", "hay", "venden", "ofrecen", "alpina", "pedido", "quiero", "necesito", "dame"];
   const necesitaCatalogo = palabrasClave.some(p => message.toLowerCase().includes(p));
-  
+
   let catalogoText = "";
   if (necesitaCatalogo) {
     try {
@@ -2292,7 +2292,7 @@ app.post("/api/chat", requireSetupAuth, async (req, res) => {
     }
   }
 
-const result = await runCmd(OPENCLAW_NODE, clawArgs([
+  const result = await runCmd(OPENCLAW_NODE, clawArgs([
     "agent",
     "--session-key", sk,
     "--message", message + catalogoText,
@@ -2331,8 +2331,9 @@ const result = await runCmd(OPENCLAW_NODE, clawArgs([
   }
 
   return res.json({ ok: true, reply: { finalAssistantVisibleText: textoFinal } });
-  });
+});
 
+app.use(async (req, res) => {
   // Only start gateway if configured AND onboarding is not in progress
   // The onboardingInProgress flag prevents race conditions during config changes
   if (isConfigured() && !onboardingInProgress) {
