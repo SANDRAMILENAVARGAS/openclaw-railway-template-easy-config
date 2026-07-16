@@ -2170,11 +2170,21 @@ app.post("/api/chat", requireSetupAuth, async (req, res) => {
     parsed?.finalAssistantVisibleText ||
     parsed?.meta?.finalAssistantVisibleText ||
     parsed?.payloads?.[0]?.text ||
-    (parsed ? "" : (result.output || "").trim());
+    (result.output || "").trim(); // nunca "": si no hay campo esperado, usa el texto crudo
+
+  // Última red de seguridad: si de verdad no hay nada de texto, nunca mandes vacío a WhatsApp
+  if (!textoFinal || !textoFinal.trim()) {
+    textoFinal = "Disculpa, tuve un problema procesando tu mensaje. ¿Puedes repetirlo? 🙏";
+  }
 
   textoFinal = truncarParaWhatsApp(textoFinal);
 
-  return res.json({ ok: true, reply: { finalAssistantVisibleText: textoFinal } });
+  return res.json({
+    ok: true,
+    reply: { finalAssistantVisibleText: textoFinal },
+    _debugParsed: parsed,                 // TEMPORAL — quitar cuando confirmemos la causa
+    _debugRawOutputLength: (result.output || "").length, // TEMPORAL
+  });
 });
 
 app.use(async (req, res) => {
